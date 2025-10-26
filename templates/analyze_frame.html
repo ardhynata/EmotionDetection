@@ -1,0 +1,33 @@
+<div id="poller"
+     hx-get="/analyze-frame-html"
+     hx-trigger="every {{.RefreshInterval}}s"
+     hx-swap="outerHTML">
+</div>
+
+<script>
+(async () => {
+  try {
+    if (typeof window.captureFrame !== 'function') {
+      console.error('captureFrame not available');
+      return;
+    }
+    const blob = await window.captureFrame();
+    if (!blob) return;
+
+    const form = new FormData();
+    form.append('frame', blob, 'frame.jpg');
+    const res = await fetch('/analyze-frame', { method: 'POST', body: form });
+    if (!res.ok) return;
+
+    const data = await res.json();
+    const now = new Date().toLocaleTimeString();
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + now + '</td><td>' + (data.happy * 100).toFixed(1)
+                 + '</td><td>' + (data.sad * 100).toFixed(1) + '</td>';
+
+    document.getElementById('results-body')?.appendChild(tr);
+  } catch (err) {
+    console.error('poll error', err);
+  }
+})();
+</script>
