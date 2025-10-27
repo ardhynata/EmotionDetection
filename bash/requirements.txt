@@ -9,4 +9,3 @@ torchaudio==2.8.0
 ultralytics
 pillow
 numpy
-opencv-python

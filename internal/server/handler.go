@@ -11,7 +11,7 @@ import (
 	"text/template"
 )
 
-const refreshInterval = 2 // seconds
+const refreshInterval = 7 // seconds
 
 var (
 	pyStdin  io.WriteCloser

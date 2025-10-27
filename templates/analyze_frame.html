@@ -11,6 +11,7 @@
       console.error('captureFrame not available');
       return;
     }
+
     const blob = await window.captureFrame();
     if (!blob) return;
 
@@ -21,13 +22,69 @@
 
     const data = await res.json();
     const now = new Date().toLocaleTimeString();
-    const tr = document.createElement('tr');
-    tr.innerHTML = '<td>' + now + '</td><td>' + (data.happy * 100).toFixed(1)
-                 + '</td><td>' + (data.sad * 100).toFixed(1) + '</td>';
+    const happy = (data.happy * 100).toFixed(1);
+    const sad = (data.sad * 100).toFixed(1);
 
-    document.getElementById('results-body')?.appendChild(tr);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${now}</td><td>${happy}</td><td>${sad}</td>`;
+
+    // choose blink color (green if happy > sad, else red)
+    const blinkColor = sad > happy ? 'blink-red' : 'blink-green';
+    tr.classList.add(blinkColor);
+
+    // prepend new row
+    const tbody = document.getElementById('results-body');
+    if (tbody) tbody.prepend(tr);
+
+    // make camera border blink too
+    const video = document.getElementById('video');
+    if (video) {
+      video.classList.add(`border-${blinkColor}`);
+      setTimeout(() => video.classList.remove(`border-${blinkColor}`), 800);
+    }
+
+    // remove table row blink after 2 seconds
+    setTimeout(() => tr.classList.remove(blinkColor), 2000);
   } catch (err) {
     console.error('poll error', err);
   }
 })();
 </script>
+
+<style>
+/* keep original table row animation */
+@keyframes pulse-green {
+  0%   { background-color: #b2ffb2; opacity: 0.9; }
+  25%  { background-color: #d0ffd0; opacity: 1; }
+  50%  { background-color: #e8ffe8; opacity: 0.8; }
+  75%  { background-color: #c0ffc0; opacity: 1; }
+  100% { background-color: transparent; opacity: 1; }
+}
+
+@keyframes pulse-red {
+  0%   { background-color: #ffb2b2; opacity: 0.9; }
+  25%  { background-color: #ffd0d0; opacity: 1; }
+  50%  { background-color: #ffe8e8; opacity: 0.8; }
+  75%  { background-color: #ffc0c0; opacity: 1; }
+  100% { background-color: transparent; opacity: 1; }
+}
+
+.blink-green {
+  animation: pulse-green 2s ease-in-out;
+}
+
+.blink-red {
+  animation: pulse-red 2s ease-in-out;
+}
+
+/* subtle camera border pulse */
+.border-blink-green {
+  border-color: #22c55e !important; /* green-500 */
+  transition: border-color 0.4s ease;
+}
+
+.border-blink-red {
+  border-color: #ef4444 !important; /* red-500 */
+  transition: border-color 0.4s ease;
+}
+</style>
