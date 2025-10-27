@@ -10,7 +10,6 @@ BASE_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 def _send_telegram_message(text, image_pil=None):
     """Internal: performs the actual sending."""
     try:
-        # Send image if provided
         if image_pil is not None:
             buf = io.BytesIO()
             image_pil.save(buf, format="JPEG", quality=80)
@@ -44,15 +43,19 @@ try:
             print(json.dumps({"error": f"cannot open image: {e}"}), flush=True)
             continue
 
-        # === 3. Run model prediction ===
-        results = model(img, verbose=False)
+        # === 3. Resize image to 64x64 ===
+        img_resized = img.resize((64, 64), Image.Resampling.LANCZOS)
+
+        # === 4. Run model prediction ===
+        results = model(img_resized, verbose=False)
         probs = results[0].probs.data.cpu().numpy()
         class_names = results[0].names
         raw_result = {class_names[i]: float(probs[i]) for i in range(len(class_names))}
 
-        # === 4. Process result ===
+        # === 5. Process result ===
         happy = raw_result.get("nostress", 0.0)
         sad = raw_result.get("stress", 0.0)
+        sad_percent = sad * 100.0
 
         json_result = {
             "happy": round(happy, 2),
@@ -61,9 +64,9 @@ try:
 
         print(json.dumps(json_result), flush=True)
 
-        # === 5. Send Telegram alert if stress detected ===
+        # === 6. Send Telegram alert if stress detected ===
         if sad > 0.7:
-            msg = f"⚠️ Mahesaca Alert:\n😟 Stress detected!\nStress: {sad:.2f}"
+            msg = f"⚠️ Mahesaca Alert:\n😟 Stress terdeteksi!\nAI Confidence: {sad_percent:.2f}%"
             send_telegram_message(msg, image_pil=img)
 
 except Exception as e:

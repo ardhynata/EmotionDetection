@@ -15,7 +15,7 @@ async function startCamera() {
 async function captureFrame() {
   // ensure video has size
   const w = video.videoWidth || 640;
-  const h = video.videoHeight || 480;
+  const h = video.videoHeight || 640;
   const canvas = document.createElement('canvas');
   canvas.width = w;
   canvas.height = h;
