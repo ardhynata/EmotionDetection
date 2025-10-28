@@ -21,32 +21,39 @@
     if (!res.ok) return;
 
     const data = await res.json();
+    const now = new Date().toLocaleTimeString();
 
-    // Validate data first
+    const tbody = document.getElementById('results-body');
+    const tr = document.createElement('tr');
+
+    // --- Handle "no face detected" case ---
+    if (data.result && data.result === "no-face") {
+      tr.innerHTML = `<td>${now}</td><td colspan="2" style="text-align:center;color:#999;">(muka tidak terdeteksi)</td>`;
+      tr.classList.add("blink-red"); // subtle red pulse to indicate missing detection
+      if (tbody) tbody.prepend(tr);
+      setTimeout(() => tr.classList.remove("blink-red"), 2000);
+      return;
+    }
+
+    // --- Normal case (with numeric happy/sad) ---
     if (!data || isNaN(data.happy) || isNaN(data.sad)) {
       console.warn('Invalid data received, skipping table update:', data);
       return;
     }
 
-    const now = new Date().toLocaleTimeString();
     const happy = (data.happy * 100).toFixed(2);
     const sad = (data.sad * 100).toFixed(2);
 
-    // if conversion results in NaN after toFixed
     if (isNaN(happy) || isNaN(sad)) {
       console.warn('Computed NaN values, skipping table update:', { happy, sad });
       return;
     }
 
-    const tr = document.createElement('tr');
     tr.innerHTML = `<td>${now}</td><td>${happy}</td><td>${sad}</td>`;
 
     // choose blink color (green if happy > sad, else red)
     const blinkColor = sad > happy ? 'blink-red' : 'blink-green';
     tr.classList.add(blinkColor);
-
-    // prepend new row
-    const tbody = document.getElementById('results-body');
     if (tbody) tbody.prepend(tr);
 
     // make camera border blink too
@@ -58,6 +65,7 @@
 
     // remove table row blink after 2 seconds
     setTimeout(() => tr.classList.remove(blinkColor), 2000);
+
   } catch (err) {
     console.error('poll error', err);
   }
