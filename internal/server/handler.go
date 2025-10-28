@@ -3,6 +3,7 @@ package server
 import (
 	"bufio"
 	"encoding/base64"
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -11,12 +12,15 @@ import (
 	"text/template"
 )
 
-const refreshInterval = 7 // seconds
+const refreshInterval = 0.1 // seconds
 
 var (
 	pyStdin  io.WriteCloser
 	pyStdout *bufio.Reader
 	pyLock   sync.Mutex
+
+	frameCounter int
+	bufferSize   = 50
 )
 
 func StartPython() {
@@ -49,16 +53,10 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := struct {
-		RefreshInterval int
-	}{
-		RefreshInterval: refreshInterval,
-	}
+	data := struct{ RefreshInterval float32 }{RefreshInterval: refreshInterval}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := tmpl.Execute(w, data); err != nil {
-		http.Error(w, "failed to render template", http.StatusInternalServerError)
-	}
+	_ = tmpl.Execute(w, data)
 }
 
 func handleAnalyzeFrameHTML(w http.ResponseWriter, r *http.Request) {
@@ -68,16 +66,10 @@ func handleAnalyzeFrameHTML(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := struct {
-		RefreshInterval int
-	}{
-		RefreshInterval: refreshInterval,
-	}
+	data := struct{ RefreshInterval float32 }{RefreshInterval: refreshInterval}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := tmpl.Execute(w, data); err != nil {
-		http.Error(w, "failed to render analyze frame", http.StatusInternalServerError)
-	}
+	_ = tmpl.Execute(w, data)
 }
 
 func handleAnalyzeFrame(w http.ResponseWriter, r *http.Request) {
@@ -94,14 +86,31 @@ func handleAnalyzeFrame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	encoded := base64.StdEncoding.EncodeToString(imgBytes)
+
 	pyLock.Lock()
 	defer pyLock.Unlock()
 
-	// Send image to Python process
-	encoded := base64.StdEncoding.EncodeToString(imgBytes)
-	pyStdin.Write([]byte(encoded + "\n"))
+	frameCounter++
+	currentFrame := frameCounter
 
-	// Read JSON output from Python
+	// Send the image to Python
+	_, _ = pyStdin.Write([]byte(encoded + "\n"))
+
+	if currentFrame < bufferSize {
+		log.Printf("Buffered frame %d/%d", currentFrame, bufferSize)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "waiting",
+			"frames": currentFrame,
+		})
+		return
+	}
+
+	// Reset counter once we hit 10 frames
+	frameCounter = 0
+
+	// Wait for Python to output the averaged result
 	result, err := pyStdout.ReadString('\n')
 	if err != nil {
 		log.Println("Python read error:", err)

@@ -21,9 +21,22 @@
     if (!res.ok) return;
 
     const data = await res.json();
+
+    // Validate data first
+    if (!data || isNaN(data.happy) || isNaN(data.sad)) {
+      console.warn('Invalid data received, skipping table update:', data);
+      return;
+    }
+
     const now = new Date().toLocaleTimeString();
-    const happy = (data.happy * 100).toFixed(1);
-    const sad = (data.sad * 100).toFixed(1);
+    const happy = (data.happy * 100).toFixed(2);
+    const sad = (data.sad * 100).toFixed(2);
+
+    // if conversion results in NaN after toFixed
+    if (isNaN(happy) || isNaN(sad)) {
+      console.warn('Computed NaN values, skipping table update:', { happy, sad });
+      return;
+    }
 
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>${now}</td><td>${happy}</td><td>${sad}</td>`;
@@ -52,7 +65,6 @@
 </script>
 
 <style>
-/* keep original table row animation */
 @keyframes pulse-green {
   0%   { background-color: #b2ffb2; opacity: 0.9; }
   25%  { background-color: #d0ffd0; opacity: 1; }
@@ -77,14 +89,13 @@
   animation: pulse-red 2s ease-in-out;
 }
 
-/* subtle camera border pulse */
 .border-blink-green {
-  border-color: #22c55e !important; /* green-500 */
+  border-color: #22c55e !important;
   transition: border-color 0.4s ease;
 }
 
 .border-blink-red {
-  border-color: #ef4444 !important; /* red-500 */
+  border-color: #ef4444 !important;
   transition: border-color 0.4s ease;
 }
 </style>
