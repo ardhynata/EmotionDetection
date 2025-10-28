@@ -28,8 +28,11 @@
 
     // --- Handle "no face detected" case ---
     if (data.result && data.result === "no-face") {
-      tr.innerHTML = `<td>${now}</td><td colspan="2" style="text-align:center;color:#999;">(muka tidak terdeteksi)</td>`;
-      tr.classList.add("blink-red"); // subtle red pulse to indicate missing detection
+      tr.innerHTML = `
+        <td style="color:#999;">${now}</td>
+        <td colspan="2" style="text-align:center;color:#999;">(muka tidak terdeteksi)</td>
+      `;
+      tr.classList.add("blink-red");
       if (tbody) tbody.prepend(tr);
       setTimeout(() => tr.classList.remove("blink-red"), 2000);
       return;
@@ -49,21 +52,29 @@
       return;
     }
 
-    tr.innerHTML = `<td>${now}</td><td>${happy}</td><td>${sad}</td>`;
+    // choose color based on emotion
+    const isSad = parseFloat(sad) > parseFloat(happy);
+    const color = isSad ? 'red' : 'green';
 
-    // choose blink color (green if happy > sad, else red)
-    const blinkColor = sad > happy ? 'blink-red' : 'blink-green';
+    tr.innerHTML = `
+      <td style="color:${color};">${now}</td>
+      <td style="color:${color};">${happy}</td>
+      <td style="color:${color};">${sad}</td>
+    `;
+
+    // choose blink color
+    const blinkColor = isSad ? 'blink-red' : 'blink-green';
     tr.classList.add(blinkColor);
     if (tbody) tbody.prepend(tr);
 
-    // make camera border blink too
+    // blink camera border
     const video = document.getElementById('video');
     if (video) {
       video.classList.add(`border-${blinkColor}`);
       setTimeout(() => video.classList.remove(`border-${blinkColor}`), 800);
     }
 
-    // remove table row blink after 2 seconds
+    // remove blink effect after 2s
     setTimeout(() => tr.classList.remove(blinkColor), 2000);
 
   } catch (err) {
