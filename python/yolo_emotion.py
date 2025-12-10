@@ -6,8 +6,8 @@ import numpy as np
 import mediapipe as mp
 
 # === TELEGRAM CONFIG ===
-BOT_TOKEN = "8401117624:AAEl959Ef4bszTeH8LekDV5VH7Y-RMnlsg0"
-CHAT_ID = "1550912667"
+BOT_TOKEN = "<BOT_TOKEN_HERE"
+CHAT_ID = "<CHAT_ID_HERE>"
 BASE_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 def _send_telegram_message(text, image_pil=None):
